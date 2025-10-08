@@ -6,13 +6,13 @@ const prisma = new PrismaClient();
 // DELETE a specific log
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } } // <-- must be exact shape
+  context: { params: { id: string } | Promise<{ id: string }> }
 ) {
+  const params = await context.params; // <-- resolve if it’s a Promise
   const id = params.id;
+
   try {
-    await prisma.weatherLog.delete({
-      where: { id },
-    });
+    await prisma.weatherLog.delete({ where: { id } });
     return NextResponse.json({ message: 'Log deleted successfully' });
   } catch (error) {
     console.error(`Failed to delete log ${id}:`, error);
@@ -23,12 +23,14 @@ export async function DELETE(
   }
 }
 
-// UPDATE a specific log (Example: only location & dates)
+// UPDATE a specific log
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } | Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   const id = params.id;
+
   try {
     const { location, startDate, endDate } = await request.json();
 
