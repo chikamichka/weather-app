@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import CurrentWeather from '../components/CurrentWeather';
-import Forecast from '../components/Forecast';
+import CurrentWeather, { type CurrentWeatherProps } from '../components/CurrentWeather';
+import Forecast, { type ForecastProps } from '../components/Forecast';
 
 // Define the expected type for the primary weather data container
 interface WeatherData {
-  current: any; // Keeping 'any' here as current weather object is complex
-  forecast: any[]; // Keeping 'any' here as forecast array items are complex
+  current: CurrentWeatherProps['data'];
+  forecast: ForecastProps['data'];
 }
 
 // Define the expected type for a single suggestion item from the /api/geocode route
@@ -24,22 +24,22 @@ export default function Home() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // FIX: Explicitly type suggestions state
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]); 
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Load search history
+  // Load search history on initial render
   useEffect(() => {
     const saved = localStorage.getItem("searchHistory");
-    if (saved) setSearchHistory(JSON.parse(saved));
+    if (saved) {
+      setSearchHistory(JSON.parse(saved));
+    }
   }, []);
 
-  // Save when changed
+  // Save search history when it changes
   useEffect(() => {
     localStorage.setItem("searchHistory", JSON.stringify(searchHistory));
   }, [searchHistory]);
@@ -60,16 +60,17 @@ export default function Home() {
   }, []);
 
   const fetchSuggestions = async (query: string) => {
-    if (query.length < 2) return setSuggestions([]);
+    if (query.length < 2) {
+      setSuggestions([]);
+      return;
+    }
     try {
-      // Assuming your /api/geocode endpoint uses 'q' as the query parameter
       const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
       if (!res.ok) throw new Error('Failed to fetch suggestions.');
       
-      // FIX: Explicitly type the incoming data
-      const data: Suggestion[] = await res.json(); 
+      const data: Suggestion[] = await res.json();
       setSuggestions(data);
-    } catch (e: unknown) { // FIX: Use 'unknown' for catch parameter
+    } catch (e: unknown) {
       console.error("Error fetching suggestions:", e);
       setSuggestions([]);
     }
@@ -79,13 +80,15 @@ export default function Home() {
     const value = e.target.value;
     setLocation(value);
     fetchSuggestions(value);
-    setShowDropdown(true); // Ensure dropdown is shown when typing
+    setShowDropdown(true);
   };
 
   const handleSelectSuggestion = (cityName: string) => {
     setLocation(cityName);
     setSuggestions([]);
     setShowDropdown(false);
+    // You might want to automatically trigger the weather fetch here as well
+    // handleFetchWeather(); // Uncomment if you want this behavior
   };
 
   const handleFetchWeather = async (e?: React.FormEvent) => {
@@ -101,25 +104,22 @@ export default function Home() {
     setSuggestions([]);
 
     try {
-      // Note: We are using 'location' parameter which triggers geocoding logic in the backend
       const response = await fetch(`/api/weather?location=${encodeURIComponent(location)}`);
       const data = await response.json();
       
       if (!response.ok) {
-        // Handle API error structure
         throw new Error(data.error || 'Failed to fetch weather data.');
       }
 
       setWeatherData(data);
 
-      // Add to search history if new
       const trimmedLocation = location.trim();
       if (!searchHistory.some(h => h.toLowerCase() === trimmedLocation.toLowerCase())) {
         setSearchHistory((prev) => [trimmedLocation, ...prev].slice(0, 5));
       }
       
-    } catch (err: unknown) { // FIX: Use 'unknown' for catch parameter
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during weather fetch.';
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -131,8 +131,8 @@ export default function Home() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
-        // Update location field for user feedback
-        setLocation(`Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`);
+        const locationString = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
+        setLocation(locationString);
         
         setLoading(true);
         setWeatherData(null);
@@ -147,17 +147,18 @@ export default function Home() {
           }
           
           setWeatherData(data);
-          // Add coordinates to history
-          setSearchHistory((prev) => [`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, ...prev].slice(0, 5));
+          if (!searchHistory.includes(locationString)) {
+            setSearchHistory((prev) => [locationString, ...prev].slice(0, 5));
+          }
 
-        } catch (err: unknown) { // FIX: Use 'unknown' for catch parameter
-          const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during geolocation fetch.';
+        } catch (err: unknown) {
+          const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
           setError(errorMessage);
         } finally {
           setLoading(false);
         }
       }, 
-      (error) => { // FIX: Explicitly type error (or let TS infer GeolocationPositionError)
+      (error: GeolocationPositionError) => {
         console.error("Geolocation Error:", error.message);
         setError("Unable to retrieve your location. Please ensure location services are enabled.");
       });
@@ -171,7 +172,6 @@ export default function Home() {
       <div className="w-full max-w-2xl">
         <h1 className="text-4xl font-bold text-center mb-6 text-blue-400">Weather App</h1>
         
-        {/* Author Info */}
         <div className="text-center mb-8 text-gray-400">
           <p>Created by: chikamichka</p>
         </div>
@@ -185,22 +185,18 @@ export default function Home() {
               onChange={handleChange}
               onFocus={() => {
                   setShowDropdown(true);
-                  // Refetch suggestions if input has content and dropdown is shown
                   if (location.length >= 2) fetchSuggestions(location); 
               }}
               placeholder="Enter City, Zip Code, or Coordinates"
               className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150"
             />
 
-            {/* Dropdown */}
             {showDropdown && (
               <div className="absolute z-20 w-full bg-gray-800 border border-gray-700 rounded-xl mt-1 shadow-lg overflow-hidden max-h-64 overflow-y-auto">
-                {/* FIX: Ensure `s` is typed as Suggestion */}
                 {suggestions.length > 0 ? (
-                  suggestions.map((s: Suggestion, i) => (
+                  suggestions.map((s, i) => (
                     <div
-                      key={i}
-                      // FIX: Safe access of s.state and correct concatenation
+                      key={`${s.lat}-${s.lon}-${i}`}
                       onClick={() => handleSelectSuggestion(`${s.name}${s.state ? `, ${s.state}` : ''}, ${s.country}`)}
                       className="p-3 hover:bg-blue-500/20 cursor-pointer transition text-sm"
                     >
@@ -209,12 +205,11 @@ export default function Home() {
                     </div>
                   ))
                 ) : location.length < 2 && searchHistory.length > 0 ? (
-                  // Show history when input is short or empty
                   <>
                     <div className="p-3 text-gray-400 text-xs font-semibold border-b border-gray-700 uppercase">Recent Searches</div>
                     {searchHistory.map((item, i) => (
                       <div
-                        key={i}
+                        key={`${item}-${i}`}
                         onClick={() => handleSelectSuggestion(item)}
                         className="p-3 hover:bg-blue-500/20 cursor-pointer transition text-sm"
                       >
@@ -222,10 +217,10 @@ export default function Home() {
                       </div>
                     ))}
                   </>
-                ) : location.length >= 2 && loading ? (
-                    <div className="p-3 text-gray-400 text-sm text-center">Searching...</div>
+                ) : location.length >= 2 && suggestions.length === 0 ? (
+                    <div className="p-3 text-gray-400 text-sm text-center">No suggestions found.</div>
                 ) : (
-                  <div className="p-3 text-gray-400 text-sm text-center">Type at least 2 letters for suggestions.</div>
+                  <div className="p-3 text-gray-400 text-sm text-center">Type at least 2 characters for suggestions.</div>
                 )}
               </div>
             )}
@@ -234,7 +229,7 @@ export default function Home() {
           <button
             type="submit"
             className="bg-blue-600 hover:bg-blue-700 p-3 rounded-lg font-semibold transition shadow-md disabled:bg-gray-500"
-            disabled={loading}
+            disabled={loading || !location}
           >
             {loading ? 'Searching...' : 'Get Weather'}
           </button>
@@ -243,7 +238,7 @@ export default function Home() {
         <div className="text-center mb-8">
           <button
             onClick={handleGeoLocation}
-            className="text-blue-400 hover:text-blue-300 transition text-sm"
+            className="text-blue-400 hover:text-blue-300 transition text-sm disabled:text-gray-500"
             disabled={loading}
           >
             Or use my current location
