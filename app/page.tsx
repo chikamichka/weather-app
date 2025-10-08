@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import CurrentWeather, { type CurrentWeatherProps } from '../components/CurrentWeather';
 import Forecast, { type ForecastProps } from '../components/Forecast';
+import LogForm from '../components/LogForm';
+import WeatherLogList, { type WeatherLog } from '../components/WeatherLogList';
 
 // Define the expected type for the primary weather data container
 interface WeatherData {
@@ -28,8 +30,14 @@ export default function Home() {
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
 
+  // New state for weather logs
+  const [logs, setLogs] = useState<WeatherLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState<boolean>(true);
+
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // --- EXISTING useEffects (no changes needed here) ---
 
   // Load search history on initial render
   useEffect(() => {
@@ -43,7 +51,7 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem("searchHistory", JSON.stringify(searchHistory));
   }, [searchHistory]);
-
+  
   // Hide dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,6 +67,26 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // --- NEW: Fetch logs on initial render ---
+  const fetchLogs = async () => {
+    setLogsLoading(true);
+    try {
+        const res = await fetch('/api/logs');
+        if (!res.ok) throw new Error("Failed to fetch logs.");
+        const data: WeatherLog[] = await res.json();
+        setLogs(data);
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setLogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  // --- EXISTING handlers (no changes needed here) ---
   const fetchSuggestions = async (query: string) => {
     if (query.length < 2) {
       setSuggestions([]);
@@ -87,8 +115,6 @@ export default function Home() {
     setLocation(cityName);
     setSuggestions([]);
     setShowDropdown(false);
-    // You might want to automatically trigger the weather fetch here as well
-    // handleFetchWeather(); // Uncomment if you want this behavior
   };
 
   const handleFetchWeather = async (e?: React.FormEvent) => {
@@ -126,7 +152,7 @@ export default function Home() {
       setShowDropdown(false);
     }
   };
-
+  
   const handleGeoLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -167,15 +193,34 @@ export default function Home() {
     }
   };
 
+
+  // --- NEW: Handlers for CRUD operations ---
+  const handleDeleteLog = async (id: string) => {
+    // Optimistic UI update
+    setLogs(currentLogs => currentLogs.filter(log => log.id !== id));
+    
+    try {
+      const res = await fetch(`/api/logs/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        // If deletion fails, refetch to revert the UI
+        throw new Error('Failed to delete.');
+      }
+    } catch (err) {
+      console.error(err);
+      fetchLogs(); // Refetch to get the correct state
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gray-900 text-white flex flex-col items-center p-4 sm:p-8">
       <div className="w-full max-w-2xl">
-        <h1 className="text-4xl font-bold text-center mb-6 text-blue-400">Weather App</h1>
+        <h1 className="text-4xl font-bold text-center mb-6 text-blue-400">Weather Dashboard</h1>
         
         <div className="text-center mb-8 text-gray-400">
           <p>Created by: chikamichka</p>
         </div>
 
+        {/* --- EXISTING Weather Search Form (no changes) --- */}
         <form onSubmit={handleFetchWeather} className="relative flex flex-col sm:flex-row gap-2 mb-4">
           <div className="relative flex-grow" ref={dropdownRef}>
             <input
@@ -190,7 +235,6 @@ export default function Home() {
               placeholder="Enter City, Zip Code, or Coordinates"
               className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150"
             />
-
             {showDropdown && (
               <div className="absolute z-20 w-full bg-gray-800 border border-gray-700 rounded-xl mt-1 shadow-lg overflow-hidden max-h-64 overflow-y-auto">
                 {suggestions.length > 0 ? (
@@ -225,7 +269,6 @@ export default function Home() {
               </div>
             )}
           </div>
-
           <button
             type="submit"
             className="bg-blue-600 hover:bg-blue-700 p-3 rounded-lg font-semibold transition shadow-md disabled:bg-gray-500"
@@ -234,7 +277,6 @@ export default function Home() {
             {loading ? 'Searching...' : 'Get Weather'}
           </button>
         </form>
-
         <div className="text-center mb-8">
           <button
             onClick={handleGeoLocation}
@@ -244,7 +286,8 @@ export default function Home() {
             Or use my current location
           </button>
         </div>
-
+        {/* --- End of Search Form --- */}
+        
         {loading && <p className="text-center text-lg text-blue-400">Loading Weather Data...</p>}
         {error && (
           <p className="text-center text-red-400 bg-red-900/50 p-3 rounded-lg border border-red-700">
@@ -253,11 +296,21 @@ export default function Home() {
         )}
 
         {weatherData && (
-          <div className="space-y-8 mt-6">
+          <div className="space-y-8 mt-6 mb-8">
             <CurrentWeather data={weatherData.current} />
             <Forecast data={weatherData.forecast} />
           </div>
         )}
+
+        {/* --- NEW Log Management Section --- */}
+        <div className="space-y-8 mt-10">
+            <LogForm onLogCreated={fetchLogs} />
+            {logsLoading ? (
+                <p className="text-center text-gray-400">Loading logs...</p>
+            ) : (
+                <WeatherLogList logs={logs} onDelete={handleDeleteLog} />
+            )}
+        </div>
       </div>
     </main>
   );

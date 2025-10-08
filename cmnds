@@ -1,0 +1,6 @@
+npm install prisma --save-dev
+npm install @prisma/client
+npx prisma init --datasource-provider postgresql
+npx prisma db push
+npm install react-datepicker @types/react-datepicker
+npm install date-fns
