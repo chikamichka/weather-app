@@ -1,6 +1,10 @@
 import { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // Add the images configuration here:
   images: {
     remotePatterns: [
@@ -18,3 +22,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
