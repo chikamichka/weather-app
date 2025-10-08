@@ -107,8 +107,8 @@ export async function GET(request: NextRequest) {
         });
 
     } catch (error: unknown) {
-        console.error('Weather API Error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'An unknown server error occurred.';
-        return NextResponse.json({ error: `Could not retrieve weather data. ${errorMessage}` }, { status: 500 });
-    }
+    console.error('Weather API Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown server error occurred.';
+    return NextResponse.json({ error: `Could not retrieve weather data. ${errorMessage}` }, { status: 500 });
+}
 }
