@@ -1,12 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 // DELETE a specific log
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: { id: string } } // <-- must be exact shape
 ) {
   const id = params.id;
   try {
@@ -16,20 +16,22 @@ export async function DELETE(
     return NextResponse.json({ message: 'Log deleted successfully' });
   } catch (error) {
     console.error(`Failed to delete log ${id}:`, error);
-    return NextResponse.json({ error: 'Log not found or failed to delete.' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Log not found or failed to delete.' },
+      { status: 404 }
+    );
   }
 }
 
-// UPDATE a specific log (Example: only location)
+// UPDATE a specific log (Example: only location & dates)
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const id = params.id;
   try {
     const { location, startDate, endDate } = await request.json();
-    
-    // In a real app, you would re-fetch geo/weather data if location changes
+
     const updatedLog = await prisma.weatherLog.update({
       where: { id },
       data: {
@@ -38,9 +40,13 @@ export async function PUT(
         endDate: new Date(endDate),
       },
     });
+
     return NextResponse.json(updatedLog);
   } catch (error) {
     console.error(`Failed to update log ${id}:`, error);
-    return NextResponse.json({ error: 'Log not found or failed to update.' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Log not found or failed to update.' },
+      { status: 404 }
+    );
   }
 }
