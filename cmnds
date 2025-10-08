@@ -4,3 +4,8 @@ npx prisma init --datasource-provider postgresql
 npx prisma db push
 npm install react-datepicker @types/react-datepicker
 npm install date-fns
+npm install react-icons
+npm install papaparse
+npm install --save-dev @types/papaparse
+npm install react-datepicker
+npm install --save-dev @types/react-datepicker
