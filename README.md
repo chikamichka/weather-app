@@ -6,7 +6,7 @@
 
 This is a full-stack weather application built with Next.js that provides real-time weather data, forecasts, and a persistent logbook for saving and reviewing weather records for different locations and date ranges. The project demonstrates a complete CRUD (Create, Read, Update, Delete) system, integration with multiple external APIs, and data export functionalities.
 
-**Live Demo:** `[https://weather-app-jp88.vercel.app]`  
+[https://weather-app-jp88.vercel.app](**Live Demo**) 
 
 
 ## ✨ Key Features
