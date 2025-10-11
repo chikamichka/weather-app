@@ -8,7 +8,7 @@ export async function DELETE(
   request: NextRequest,
   context: { params: { id: string } | Promise<{ id: string }> }
 ) {
-  const params = await context.params; // <-- resolve if it’s a Promise
+  const params = await context.params;
   const id = params.id;
 
   try {
@@ -32,7 +32,16 @@ export async function PUT(
   const id = params.id;
 
   try {
-    const { location, startDate, endDate } = await request.json();
+    const { location, startDate, endDate, weatherData } = await request.json();
+
+    // Validation
+    if (!location || !startDate || !endDate) {
+      return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+    }
+
+    if (new Date(startDate) >= new Date(endDate)) {
+      return NextResponse.json({ error: 'End date must be after start date.' }, { status: 400 });
+    }
 
     const updatedLog = await prisma.weatherLog.update({
       where: { id },
@@ -40,6 +49,7 @@ export async function PUT(
         location,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
+        weatherData: weatherData || undefined, // Only update if provided
       },
     });
 

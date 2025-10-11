@@ -397,12 +397,12 @@ export default function Home() {
         </div>
 
         {/* Footer */}
-        <footer className={`mt-16 text-center text-sm ${
+        <footer className={`mt-16 text-center space-y-4 ${
           theme === "dark" ? "text-purple-300" : "text-indigo-600"
         }`}>
-          <p className="font-medium">
-            ✨ Developed with passion by <strong>Boukhelkhal Imene</strong> ✨ 
-          </p>
+          <p className="font-medium text-lg">
+            ✨ Developed with passion by <strong>Boukhelkhal Imene</strong> ✨
+          </p>  
           <p className={`mt-2 text-xs ${
             theme === "dark" ? "text-slate-400" : "text-gray-500"
           }`}>

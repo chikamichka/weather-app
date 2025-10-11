@@ -37,10 +37,6 @@ export default function LogManager({ saveLabel = "Saved Weather Logs" }: LogMana
     }
   };
 
-  const handleEditLog = (log: WeatherLog) => {
-    console.log("Edit log clicked:", log);
-  };
-
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
@@ -69,7 +65,11 @@ export default function LogManager({ saveLabel = "Saved Weather Logs" }: LogMana
           </p>
         </div>
       ) : (
-        <WeatherLogList logs={logs} onDelete={handleDeleteLog} onEdit={handleEditLog} />
+        <WeatherLogList 
+          logs={logs} 
+          onDelete={handleDeleteLog} 
+          onRefresh={fetchLogs}
+        />
       )}
     </section>
   );

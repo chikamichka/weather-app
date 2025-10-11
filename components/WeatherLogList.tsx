@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { JsonValue } from "@prisma/client/runtime/library";
 import VideoHighlights from "./VideoHighlights";
+import EditLogModal from "./EditLogModal";
 import { FiMap, FiVideo, FiTrash2, FiEdit, FiDownload, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import jsPDF from "jspdf";
 
@@ -20,12 +21,13 @@ export interface WeatherLog {
 interface WeatherLogListProps {
   logs: WeatherLog[];
   onDelete: (id: string) => void;
-  onEdit: (log: WeatherLog) => void;
+  onRefresh: () => void;
 }
 
-export default function WeatherLogList({ logs, onDelete, onEdit }: WeatherLogListProps) {
+export default function WeatherLogList({ logs, onDelete, onRefresh }: WeatherLogListProps) {
   const [activeVideoLogId, setActiveVideoLogId] = useState<string | null>(null);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+  const [editingLog, setEditingLog] = useState<WeatherLog | null>(null);
 
   const toggleVideos = (logId: string) => {
     setActiveVideoLogId((currentId) => (currentId === logId ? null : logId));
@@ -33,6 +35,22 @@ export default function WeatherLogList({ logs, onDelete, onEdit }: WeatherLogLis
 
   const toggleExpand = (logId: string) => {
     setExpandedLogId((currentId) => (currentId === logId ? null : logId));
+  };
+
+  const handleEditClick = (log: WeatherLog) => {
+    console.log("Edit clicked for log:", log);
+    setEditingLog(log);
+  };
+
+  const handleCloseModal = () => {
+    console.log("Closing modal");
+    setEditingLog(null);
+  };
+
+  const handleUpdateSuccess = () => {
+    console.log("Update successful, refreshing logs");
+    setEditingLog(null);
+    onRefresh();
   };
 
   const exportJSON = (log: WeatherLog) => {
@@ -144,159 +162,170 @@ export default function WeatherLogList({ logs, onDelete, onEdit }: WeatherLogLis
   }
 
   return (
-    <div className="space-y-4">
-      {logs.map((log) => {
-        const weatherDays = getWeatherDays(log.weatherData);
-        const isExpanded = expandedLogId === log.id;
-        
-        return (
-          <div
-            key={log.id}
-            className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-900 p-6 rounded-2xl shadow-xl border-2 border-indigo-100 dark:border-slate-700 transition-all hover:shadow-2xl"
-          >
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-              <div className="flex-grow">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">📍</span>
-                  <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-purple-400 dark:to-pink-400">
-                    {log.location}
+    <>
+      <div className="space-y-4">
+        {logs.map((log) => {
+          const weatherDays = getWeatherDays(log.weatherData);
+          const isExpanded = expandedLogId === log.id;
+          
+          return (
+            <div
+              key={log.id}
+              className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-900 p-6 rounded-2xl shadow-xl border-2 border-indigo-100 dark:border-slate-700 transition-all hover:shadow-2xl"
+            >
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div className="flex-grow">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">📍</span>
+                    <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-purple-400 dark:to-pink-400">
+                      {log.location}
+                    </p>
+                  </div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <span>📅</span>
+                    {new Date(log.startDate).toLocaleDateString()} - {new Date(log.endDate).toLocaleDateString()}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    💾 Saved: {new Date(log.createdAt).toLocaleString()}
                   </p>
                 </div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                  <span>📅</span>
-                  {new Date(log.startDate).toLocaleDateString()} - {new Date(log.endDate).toLocaleDateString()}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  💾 Saved: {new Date(log.createdAt).toLocaleString()}
-                </p>
+                
+                <div className="flex gap-2 self-start sm:self-center flex-shrink-0 flex-wrap">
+                  <a
+                    href={`https://www.google.com/maps?q=${log.latitude},${log.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2.5 bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-800/50 rounded-lg transition-all text-emerald-700 dark:text-emerald-400 border-2 border-emerald-200 dark:border-emerald-800"
+                    title="View on Map"
+                  >
+                    <FiMap size={18} />
+                  </a>
+                  <button
+                    onClick={() => toggleVideos(log.id)}
+                    className={`p-2.5 rounded-lg transition-all border-2 ${
+                      activeVideoLogId === log.id
+                        ? "bg-purple-600 text-white border-purple-600"
+                        : "bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-800/50 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800"
+                    }`}
+                    title="Show Videos"
+                  >
+                    <FiVideo size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleEditClick(log)}
+                    className="p-2.5 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg transition-all text-blue-700 dark:text-blue-400 border-2 border-blue-200 dark:border-blue-800"
+                    title="Edit Log"
+                  >
+                    <FiEdit size={18} />
+                  </button>
+                  <button
+                    onClick={() => onDelete(log.id)}
+                    className="p-2.5 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-800/50 rounded-lg transition-all text-red-700 dark:text-red-400 border-2 border-red-200 dark:border-red-800"
+                    title="Delete Log"
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                </div>
               </div>
-              
-              <div className="flex gap-2 self-start sm:self-center flex-shrink-0 flex-wrap">
-                <a
-                  href={`https://www.google.com/maps?q=${log.latitude},${log.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2.5 bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-800/50 rounded-lg transition-all text-emerald-700 dark:text-emerald-400 border-2 border-emerald-200 dark:border-emerald-800"
-                  title="View on Map"
-                >
-                  <FiMap size={18} />
-                </a>
-                <button
-                  onClick={() => toggleVideos(log.id)}
-                  className={`p-2.5 rounded-lg transition-all border-2 ${
-                    activeVideoLogId === log.id
-                      ? "bg-purple-600 text-white border-purple-600"
-                      : "bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-800/50 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800"
-                  }`}
-                  title="Show Videos"
-                >
-                  <FiVideo size={18} />
-                </button>
-                <button
-                  onClick={() => onEdit(log)}
-                  className="p-2.5 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg transition-all text-blue-700 dark:text-blue-400 border-2 border-blue-200 dark:border-blue-800"
-                  title="Edit Log"
-                >
-                  <FiEdit size={18} />
-                </button>
-                <button
-                  onClick={() => onDelete(log.id)}
-                  className="p-2.5 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-800/50 rounded-lg transition-all text-red-700 dark:text-red-400 border-2 border-red-200 dark:border-red-800"
-                  title="Delete Log"
-                >
-                  <FiTrash2 size={18} />
-                </button>
-              </div>
-            </div>
 
-            {/* Weather Data Section */}
-            <div className="mt-6 pt-6 border-t-2 border-indigo-200 dark:border-slate-700">
-              <button
-                onClick={() => toggleExpand(log.id)}
-                className="flex items-center gap-2 text-indigo-600 dark:text-purple-400 font-bold hover:underline transition-all"
-              >
-                {isExpanded ? <FiChevronUp size={20} /> : <FiChevronDown size={20} />}
-                {isExpanded ? "Hide" : "Show"} Weather Data ({weatherDays.length} days available)
-              </button>
+              {/* Weather Data Section */}
+              <div className="mt-6 pt-6 border-t-2 border-indigo-200 dark:border-slate-700">
+                <button
+                  onClick={() => toggleExpand(log.id)}
+                  className="flex items-center gap-2 text-indigo-600 dark:text-purple-400 font-bold hover:underline transition-all"
+                >
+                  {isExpanded ? <FiChevronUp size={20} /> : <FiChevronDown size={20} />}
+                  {isExpanded ? "Hide" : "Show"} Weather Data ({weatherDays.length} days available)
+                </button>
 
-              {isExpanded && weatherDays.length > 0 && (
-                <div className="mt-4">
-                  <div className="relative">
-                    <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-indigo-400 dark:scrollbar-thumb-purple-600 scrollbar-track-indigo-100 dark:scrollbar-track-slate-800">
-                      <div className="flex gap-4 min-w-max pb-2">
-                        {weatherDays.map(({ date, item }, index) => (
-                          <div
-                            key={index}
-                            className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-lg min-w-[220px] flex-shrink-0 border-2 border-indigo-100 dark:border-slate-700 hover:shadow-xl transition-all transform hover:scale-105"
-                          >
-                            <p className="font-bold text-lg text-gray-800 dark:text-gray-100 mb-3 pb-2 border-b-2 border-indigo-200 dark:border-slate-600">
-                              {date}
-                            </p>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex items-center gap-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                                <span className="text-xl">🌡️</span>
-                                <span className="font-semibold text-orange-700 dark:text-orange-400">
-                                  {item.main?.temp ? `${Math.round(item.main.temp)}°C` : "N/A"}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 p-2 bg-sky-50 dark:bg-sky-900/20 rounded-lg">
-                                <span className="text-xl">☁️</span>
-                                <span className="text-sky-700 dark:text-sky-400 capitalize">
-                                  {item.weather?.[0]?.description || "N/A"}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                <span className="text-xl">💧</span>
-                                <span className="text-blue-700 dark:text-blue-400">
-                                  {item.main?.humidity || "N/A"}% humidity
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 p-2 bg-teal-50 dark:bg-teal-900/20 rounded-lg">
-                                <span className="text-xl">💨</span>
-                                <span className="text-teal-700 dark:text-teal-400">
-                                  {item.wind?.speed ? `${item.wind.speed.toFixed(1)} m/s` : "N/A"}
-                                </span>
+                {isExpanded && weatherDays.length > 0 && (
+                  <div className="mt-4">
+                    <div className="relative">
+                      <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-indigo-400 dark:scrollbar-thumb-purple-600 scrollbar-track-indigo-100 dark:scrollbar-track-slate-800">
+                        <div className="flex gap-4 min-w-max pb-2">
+                          {weatherDays.map(({ date, item }, index) => (
+                            <div
+                              key={index}
+                              className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-lg min-w-[220px] flex-shrink-0 border-2 border-indigo-100 dark:border-slate-700 hover:shadow-xl transition-all transform hover:scale-105"
+                            >
+                              <p className="font-bold text-lg text-gray-800 dark:text-gray-100 mb-3 pb-2 border-b-2 border-indigo-200 dark:border-slate-600">
+                                {date}
+                              </p>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex items-center gap-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                                  <span className="text-xl">🌡️</span>
+                                  <span className="font-semibold text-orange-700 dark:text-orange-400">
+                                    {item.main?.temp ? `${Math.round(item.main.temp)}°C` : "N/A"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 p-2 bg-sky-50 dark:bg-sky-900/20 rounded-lg">
+                                  <span className="text-xl">☁️</span>
+                                  <span className="text-sky-700 dark:text-sky-400 capitalize">
+                                    {item.weather?.[0]?.description || "N/A"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                  <span className="text-xl">💧</span>
+                                  <span className="text-blue-700 dark:text-blue-400">
+                                    {item.main?.humidity || "N/A"}% humidity
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 p-2 bg-teal-50 dark:bg-teal-900/20 rounded-lg">
+                                  <span className="text-xl">💨</span>
+                                  <span className="text-teal-700 dark:text-teal-400">
+                                    {item.wind?.speed ? `${item.wind.speed.toFixed(1)} m/s` : "N/A"}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Export Buttons */}
-                  <div className="flex gap-3 mt-6 flex-wrap">
-                    <button
-                      onClick={() => exportJSON(log)}
-                      className="px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 transform hover:scale-105"
-                    >
-                      <FiDownload size={18} /> Export JSON
-                    </button>
-                    <button
-                      onClick={() => exportCSV(log)}
-                      className="px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 transform hover:scale-105"
-                    >
-                      <FiDownload size={18} /> Export CSV
-                    </button>
-                    <button
-                      onClick={() => exportPDF(log)}
-                      className="px-5 py-3 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 transform hover:scale-105"
-                    >
-                      <FiDownload size={18} /> Export PDF
-                    </button>
+                    {/* Export Buttons */}
+                    <div className="flex gap-3 mt-6 flex-wrap">
+                      <button
+                        onClick={() => exportJSON(log)}
+                        className="px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 transform hover:scale-105"
+                      >
+                        <FiDownload size={18} /> Export JSON
+                      </button>
+                      <button
+                        onClick={() => exportCSV(log)}
+                        className="px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 transform hover:scale-105"
+                      >
+                        <FiDownload size={18} /> Export CSV
+                      </button>
+                      <button
+                        onClick={() => exportPDF(log)}
+                        className="px-5 py-3 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 transform hover:scale-105"
+                      >
+                        <FiDownload size={18} /> Export PDF
+                      </button>
+                    </div>
                   </div>
+                )}
+              </div>
+
+              {activeVideoLogId === log.id && (
+                <div className="mt-6 pt-6 border-t-2 border-indigo-200 dark:border-slate-700">
+                  <VideoHighlights location={log.location} />
                 </div>
               )}
             </div>
-
-            {activeVideoLogId === log.id && (
-              <div className="mt-6 pt-6 border-t-2 border-indigo-200 dark:border-slate-700">
-                <VideoHighlights location={log.location} />
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+      
+      {/* Edit Modal - This renders outside the loop */}
+      {editingLog && (
+        <EditLogModal
+          log={editingLog}
+          onClose={handleCloseModal}
+          onUpdate={handleUpdateSuccess}
+        />
+      )}
+    </>
   );
 }
