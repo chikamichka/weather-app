@@ -4,33 +4,24 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // DELETE a specific log
-export async function DELETE(
-  request: NextRequest,
-  context: { params: { id: string } }
-) {
-  const { id } = context.params;
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params;
 
   try {
     await prisma.weatherLog.delete({ where: { id } });
     return NextResponse.json({ message: 'Log deleted successfully' });
   } catch (error) {
     console.error(`Failed to delete log ${id}:`, error);
-    return NextResponse.json(
-      { error: 'Log not found or failed to delete.' },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: 'Log not found or failed to delete.' }, { status: 404 });
   }
 }
 
 // UPDATE a specific log
-export async function PUT(
-  request: NextRequest,
-  context: { params: { id: string } }
-) {
+export async function PUT(req: NextRequest, context: any) {
   const { id } = context.params;
 
   try {
-    const { location, startDate, endDate, weatherData } = await request.json();
+    const { location, startDate, endDate, weatherData } = await req.json();
 
     // Validation
     if (!location || !startDate || !endDate) {
@@ -47,16 +38,13 @@ export async function PUT(
         location,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        weatherData: weatherData || undefined, // Only update if provided
+        weatherData: weatherData || undefined,
       },
     });
 
     return NextResponse.json(updatedLog);
   } catch (error) {
     console.error(`Failed to update log ${id}:`, error);
-    return NextResponse.json(
-      { error: 'Log not found or failed to update.' },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: 'Log not found or failed to update.' }, { status: 404 });
   }
 }
