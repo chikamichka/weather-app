@@ -6,10 +6,9 @@ const prisma = new PrismaClient();
 // DELETE a specific log
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } | Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
-  const params = await context.params;
-  const id = params.id;
+  const { id } = context.params;
 
   try {
     await prisma.weatherLog.delete({ where: { id } });
@@ -26,10 +25,9 @@ export async function DELETE(
 // UPDATE a specific log
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } | Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
-  const params = await context.params;
-  const id = params.id;
+  const { id } = context.params;
 
   try {
     const { location, startDate, endDate, weatherData } = await request.json();
