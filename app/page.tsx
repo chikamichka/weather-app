@@ -19,7 +19,6 @@ interface Suggestion {
   state?: string;
 }
 
-// Determine theme on initial load
 const getInitialTheme = () => {
   if (typeof window !== "undefined" && localStorage.getItem("theme")) {
     return localStorage.getItem("theme") as "light" | "dark";
@@ -46,7 +45,6 @@ export default function Home() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Apply theme globally
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === "dark") {
@@ -57,23 +55,19 @@ export default function Home() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  // Toggle between light and dark mode
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
-  // Load search history
   useEffect(() => {
     const saved = localStorage.getItem("searchHistory");
     if (saved) setSearchHistory(JSON.parse(saved));
   }, []);
 
-  // Save search history
   useEffect(() => {
     localStorage.setItem("searchHistory", JSON.stringify(searchHistory));
   }, [searchHistory]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -88,7 +82,6 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch city suggestions
   const fetchSuggestions = async (query: string) => {
     if (query.length < 2) {
       setSuggestions([]);
@@ -198,35 +191,37 @@ export default function Home() {
     <main
       className={`min-h-screen flex flex-col items-center p-4 sm:p-8 transition-colors duration-500 ${
         theme === "dark"
-          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white"
-          : "bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 text-gray-900"
+          ? "bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"
+          : "bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50"
       }`}
     >
       {/* Theme Toggle Button */}
       <button
         onClick={toggleTheme}
         aria-label="Toggle Dark/Light Mode"
-        className={`absolute top-4 right-4 z-50 p-2 rounded-full shadow-md transition duration-300 ${
+        className={`absolute top-6 right-6 z-50 p-3 rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 ${
           theme === "dark"
-            ? "bg-gray-700 text-yellow-300 hover:bg-gray-600"
-            : "bg-blue-200 text-blue-600 hover:bg-blue-300"
+            ? "bg-slate-800 text-amber-400 hover:bg-slate-700 border-2 border-slate-700"
+            : "bg-white text-indigo-600 hover:bg-indigo-50 border-2 border-indigo-200"
         }`}
       >
-        {theme === "dark" ? <FiSun size={22} /> : <FiMoon size={22} />}
+        {theme === "dark" ? <FiSun size={24} /> : <FiMoon size={24} />}
       </button>
 
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-4xl">
         {/* Header */}
-        <header className="text-center mb-10">
+        <header className="text-center mb-12">
           <h1
-            className={`text-5xl font-bold drop-shadow-lg ${
-              theme === "dark" ? "text-yellow-300" : "text-blue-600"
+            className={`text-5xl sm:text-6xl font-extrabold drop-shadow-2xl mb-3 ${
+              theme === "dark"
+                ? "text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400"
+                : "text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600"
             }`}
           >
-            Weather Dashboard
+            ⛅ Weather Dashboard
           </h1>
-          <p className="mt-2 opacity-80">
-            Explore live forecasts & manage your personal weather logs.
+          <p className={`text-lg ${theme === "dark" ? "text-purple-200" : "text-indigo-700"}`}>
+            Explore live forecasts & manage your personal weather logs
           </p>
         </header>
 
@@ -246,19 +241,19 @@ export default function Home() {
                   setShowDropdown(true);
                   if (location.length >= 2) fetchSuggestions(location);
                 }}
-                placeholder="Enter a city, zip code, or landmark..."
-                className={`w-full p-3 rounded-lg border focus:outline-none focus:ring-2 transition duration-150 ${
+                placeholder="🔍 Search city, zip code, or landmark..."
+                className={`w-full p-4 rounded-xl border-2 focus:outline-none focus:ring-2 transition-all duration-200 shadow-lg ${
                   theme === "dark"
-                    ? "bg-gray-800 border-gray-700 focus:ring-yellow-400 text-white"
-                    : "bg-white border-gray-300 focus:ring-blue-500 text-gray-800"
+                    ? "bg-slate-800 border-slate-700 focus:ring-purple-500 focus:border-transparent text-white placeholder-slate-400"
+                    : "bg-white border-indigo-200 focus:ring-indigo-500 focus:border-transparent text-gray-800 placeholder-gray-400"
                 }`}
               />
               {showDropdown && (
                 <div
-                  className={`absolute z-20 w-full rounded-xl mt-1 shadow-lg max-h-64 overflow-y-auto ${
+                  className={`absolute z-20 w-full rounded-xl mt-2 shadow-2xl max-h-64 overflow-y-auto border-2 ${
                     theme === "dark"
-                      ? "bg-gray-800 border border-gray-700"
-                      : "bg-white border border-gray-300"
+                      ? "bg-slate-800 border-slate-700"
+                      : "bg-white border-indigo-100"
                   }`}
                 >
                   {suggestions.length > 0 ? (
@@ -270,32 +265,38 @@ export default function Home() {
                             `${s.name}${s.state ? `, ${s.state}` : ""}, ${s.country}`
                           )
                         }
-                        className={`p-3 text-sm cursor-pointer transition ${
+                        className={`p-4 text-sm cursor-pointer transition-colors border-b last:border-b-0 ${
                           theme === "dark"
-                            ? "hover:bg-yellow-400/20"
-                            : "hover:bg-blue-100"
+                            ? "hover:bg-purple-900/30 border-slate-700"
+                            : "hover:bg-indigo-50 border-indigo-100"
                         }`}
                       >
                         <span className="font-semibold">
                           {s.name}
                           {s.state ? `, ${s.state}` : ""}
                         </span>
-                        <span className="ml-2 opacity-70">{s.country}</span>
+                        <span className={`ml-2 ${theme === "dark" ? "text-slate-400" : "text-gray-500"}`}>
+                          {s.country}
+                        </span>
                       </div>
                     ))
                   ) : searchHistory.length > 0 ? (
                     <>
-                      <div className="p-3 text-xs font-semibold opacity-60 uppercase border-b">
-                        Recent Searches
+                      <div className={`p-3 text-xs font-semibold uppercase border-b ${
+                        theme === "dark" 
+                          ? "text-slate-400 border-slate-700 bg-slate-900" 
+                          : "text-gray-500 border-indigo-100 bg-indigo-50"
+                      }`}>
+                        📍 Recent Searches
                       </div>
                       {searchHistory.map((item, i) => (
                         <div
                           key={`${item}-${i}`}
                           onClick={() => handleSelectSuggestion(item)}
-                          className={`p-3 text-sm cursor-pointer transition ${
+                          className={`p-4 text-sm cursor-pointer transition-colors border-b last:border-b-0 ${
                             theme === "dark"
-                              ? "hover:bg-yellow-400/10"
-                              : "hover:bg-blue-100"
+                              ? "hover:bg-purple-900/20 border-slate-700"
+                              : "hover:bg-indigo-50 border-indigo-100"
                           }`}
                         >
                           {item}
@@ -309,69 +310,70 @@ export default function Home() {
             <button
               type="submit"
               disabled={loading}
-              className={`p-3 rounded-lg font-semibold shadow-md transition ${
+              className={`px-8 py-4 rounded-xl font-bold shadow-lg transition-all duration-200 transform hover:scale-105 ${
                 loading
-                  ? "bg-gray-400 text-white"
+                  ? "bg-gray-400 text-white cursor-not-allowed"
                   : theme === "dark"
-                  ? "bg-yellow-400 hover:bg-yellow-500 text-gray-900"
-                  : "bg-blue-600 hover:bg-blue-700 text-white"
+                  ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                  : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
               }`}
             >
-              {loading ? "Searching..." : "Get Weather"}
+              {loading ? "🔄 Searching..." : "🌤️ Get Weather"}
             </button>
           </form>
-          <div className="text-center mt-3">
+          <div className="text-center mt-4">
             <button
               onClick={handleGeoLocation}
               disabled={loading}
-              className={`text-sm transition ${
+              className={`text-sm font-medium transition-colors ${
                 theme === "dark"
-                  ? "text-yellow-400 hover:text-yellow-300"
-                  : "text-blue-600 hover:text-blue-500"
+                  ? "text-purple-400 hover:text-purple-300"
+                  : "text-indigo-600 hover:text-indigo-500"
               }`}
             >
-              Or use my current location
+              📍 Or use my current location
             </button>
           </div>
         </section>
 
         {/* Weather Display */}
         {loading && (
-          <p
-            className={`text-center text-lg mt-4 animate-pulse ${
-              theme === "dark" ? "text-yellow-300" : "text-blue-600"
-            }`}
-          >
-            Loading Weather Data...
-          </p>
+          <div className="text-center my-8">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-t-transparent border-purple-500"></div>
+            <p className={`mt-4 text-lg font-medium ${
+              theme === "dark" ? "text-purple-300" : "text-indigo-600"
+            }`}>
+              Loading Weather Data...
+            </p>
+          </div>
         )}
         {error && (
-          <p
-            className={`mt-4 text-center p-3 rounded-lg border ${
+          <div
+            className={`mt-6 text-center p-4 rounded-xl border-2 ${
               theme === "dark"
-                ? "text-red-400 bg-red-900/40 border-red-700"
-                : "text-red-600 bg-red-100 border-red-300"
+                ? "text-red-400 bg-red-900/30 border-red-800"
+                : "text-red-700 bg-red-50 border-red-300"
             }`}
           >
-            {error}
-          </p>
+            ⚠️ {error}
+          </div>
         )}
         {weatherData && (
-          <div className="grid gap-8 mt-6">
+          <div className="grid gap-6 mt-8">
             <div
-              className={`p-6 rounded-xl shadow-lg border ${
+              className={`p-6 rounded-2xl shadow-xl border-2 ${
                 theme === "dark"
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-200"
+                  ? "bg-slate-800/50 backdrop-blur border-slate-700"
+                  : "bg-white/80 backdrop-blur border-indigo-100"
               }`}
             >
               <CurrentWeather data={weatherData.current} />
             </div>
             <div
-              className={`p-6 rounded-xl shadow-lg border ${
+              className={`p-6 rounded-2xl shadow-xl border-2 ${
                 theme === "dark"
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-200"
+                  ? "bg-slate-800/50 backdrop-blur border-slate-700"
+                  : "bg-white/80 backdrop-blur border-indigo-100"
               }`}
             >
               <Forecast data={weatherData.forecast} />
@@ -379,22 +381,33 @@ export default function Home() {
           </div>
         )}
 
-        <hr className="my-12 opacity-50" />
+        <hr className={`my-16 border-t-2 ${
+          theme === "dark" ? "border-slate-700" : "border-indigo-200"
+        }`} />
 
         {/* Log Manager */}
         <div
-          className={`p-6 rounded-xl shadow-lg border ${
+          className={`p-8 rounded-2xl shadow-xl border-2 ${
             theme === "dark"
-              ? "bg-gray-800 border-gray-700"
-              : "bg-white border-gray-200"
+              ? "bg-slate-800/50 backdrop-blur border-slate-700"
+              : "bg-white/80 backdrop-blur border-indigo-100"
           }`}
         >
           <LogManager />
         </div>
 
         {/* Footer */}
-        <footer className="mt-12 text-center opacity-70 text-sm">
-          Developed by <strong>Boukhelkhal Imene</strong>.
+        <footer className={`mt-16 text-center text-sm ${
+          theme === "dark" ? "text-purple-300" : "text-indigo-600"
+        }`}>
+          <p className="font-medium">
+            ✨ Developed with passion by <strong>Boukhelkhal Imene</strong> ✨ 
+          </p>
+          <p className={`mt-2 text-xs ${
+            theme === "dark" ? "text-slate-400" : "text-gray-500"
+          }`}>
+            Powered by OpenWeatherMap API
+          </p>
         </footer>
       </div>
     </main>
