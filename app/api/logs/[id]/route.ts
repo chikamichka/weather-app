@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// Use a global Prisma client to avoid too many connections in Vercel serverless
+const globalForPrisma = global as unknown as { prisma?: PrismaClient };
+const prisma = globalForPrisma.prisma ?? new PrismaClient();
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // DELETE a specific log
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function DELETE(req: NextRequest, context: any) {
+  const { id } = context.params;
 
   try {
     await prisma.weatherLog.delete({ where: { id } });
